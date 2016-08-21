@@ -17,7 +17,7 @@ goinst PACKAGE
 e.g.
 
 ```
-goinst github.com/bitrise-tools/betriis
+goinst github.com/bitrise-tools/goinst
 ```
 
 Works similar to `go get -u PACKAGE`, but in a temporary, isolated workspace,
