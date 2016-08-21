@@ -1,0 +1,40 @@
+{
+	"ImportPath": "github.com/bitrise-tools/goinst",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.10.0-36-g08a8a7c",
+			"Rev": "08a8a7c27e3d058a8989316a850daad1c10bf4ab"
+		},
+		{
+			"ImportPath": "github.com/bitrise-io/go-utils/pathutil",
+			"Rev": "6f2853601d327acba2dcbfc19f8580dc5f867766"
+		},
+		{
+			"ImportPath": "github.com/bitrise-tools/gows/gows",
+			"Rev": "c90ee77baa6f7e2815d9f8598c28fd97a8fce60e"
+		},
+		{
+			"ImportPath": "github.com/inconshreveable/mousetrap",
+			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+		},
+		{
+			"ImportPath": "github.com/spf13/pflag",
+			"Rev": "103ce5cd2042f2fe629c1957abb64ab3e7f50235"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "a646d33e2ee3172a661fc09bca23bb4889a41bc8"
+		},
+		{
+			"ImportPath": "gopkg.in/viktorbenei/cobra.v0",
+			"Comment": "v0",
+			"Rev": "5513220bc3d99d258948b1094b864892f256c249"
+		}
+	]
+}

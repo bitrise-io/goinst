@@ -1,0 +1,40 @@
+format_version: 1.2.0
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+
+workflows:
+  test:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            go test ./...
+
+  deps-update:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            rm -rf Godeps
+            rm -rf vendor
+            go get -u github.com/tools/godep
+            #
+            go get -u ./...
+            go get github.com/inconshreveable/mousetrap
+            go get github.com/Sirupsen/logrus
+            go get golang.org/x/sys/unix
+            #
+            godep save ./...
+
+  watch:
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            go get github.com/eaburns/Watch
+            Watch -t -v -p ./ bash -l -c 'go test ./... && go install'
