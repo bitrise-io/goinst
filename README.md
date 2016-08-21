@@ -7,6 +7,7 @@ Works in isolated, temporary GO workspaces.
 Does not require GOPATH to be configured,
 the only dependency is `Go`, and the VCS tools the packages use (e.g. `git`).
 
+
 ## Usage
 
 ```
@@ -24,3 +25,7 @@ instead of a system `GOPATH`. This means that __it will not modify the content
 of `GOPATH`__ if you have one configured.
 
 The generated binaries are moved into `/usr/local/bin` by default.
+
+Safe to use with `sudo` (`sudo goinst PACKAGE`), as it won't modify anything outside
+its isolated workspace (other than copying the generated binaries), and will
+delete the workspace once it's finished.
