@@ -3,8 +3,12 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
+	"github.com/bitrise-io/go-utils/fileutil"
 	"github.com/bitrise-io/go-utils/pathutil"
 	"github.com/bitrise-tools/gows/gows"
 
@@ -53,6 +57,62 @@ func init() {
 	}
 }
 
+func copyFile(fromPath, toPath string) (copyErr error) {
+	srcFilePerm, err := fileutil.GetFilePermissions(fromPath)
+	if err != nil {
+		return fmt.Errorf("Failed to get file permission of source, error: %s", err)
+	}
+
+	in, err := os.Open(fromPath)
+	if err != nil {
+		return fmt.Errorf("Failed to open source for read (%s), error: %s", fromPath, err)
+	}
+	defer func() {
+		if err := in.Close(); err != nil {
+			if copyErr == nil {
+				copyErr = fmt.Errorf("Failed to close source, error: %s", err)
+			}
+		}
+	}()
+	out, err := os.Create(toPath)
+	if err != nil {
+		return fmt.Errorf("Failed to create target for write (%s), error: %s", toPath, err)
+	}
+	defer func() {
+		if err := out.Close(); err != nil {
+			if copyErr == nil {
+				copyErr = fmt.Errorf("Failed to close target, error: %s", err)
+			}
+		}
+	}()
+	if _, err := io.Copy(out, in); err != nil {
+		return fmt.Errorf("Failed to copy content, error: %s", err)
+	}
+	if err := out.Sync(); err != nil {
+		return fmt.Errorf("Failed to sync output, error: %s", err)
+	}
+
+	return os.Chmod(toPath, srcFilePerm)
+}
+
+func copyFilesFromDir(srcDir, targetDir string) error {
+	files, err := ioutil.ReadDir(srcDir)
+	if err != nil {
+		return fmt.Errorf("Failed to read source directory content, error: %s", err)
+	}
+
+	for _, file := range files {
+		srcFilePath := filepath.Join(srcDir, file.Name())
+		destFilePath := filepath.Join(targetDir, file.Name())
+		fmt.Println("   * " + srcFilePath + " -> " + destFilePath)
+		if err := copyFile(srcFilePath, destFilePath); err != nil {
+			return fmt.Errorf("Failed to copy file, error: %s", err)
+		}
+	}
+
+	return nil
+}
+
 func goInstallPackageInIsolation(packageToInstall string) error {
 	fmt.Println("=> Installing package " + packageToInstall + " ...")
 	workspaceRootPath, err := pathutil.NormalizedOSTempDirPath("goinst")
@@ -61,27 +121,42 @@ func goInstallPackageInIsolation(packageToInstall string) error {
 	}
 	fmt.Println("=> Using sandboxed workspace:", workspaceRootPath)
 
-	origGOPATH := os.Getenv("GOPATH")
-	if origGOPATH == "" {
-		return fmt.Errorf("You don't have a GOPATH environment - please set it; GOPATH/bin will be symlinked")
-	}
+	// origGOPATH := os.Getenv("GOPATH")
+	// if origGOPATH == "" {
+	// 	return fmt.Errorf("You don't have a GOPATH environment - please set it; GOPATH/bin will be symlinked")
+	// }
 
-	fmt.Println("=> Symlink GOPATH/bin into sandbox ...")
-	if err := gows.CreateGopathBinSymlink(origGOPATH, workspaceRootPath); err != nil {
-		return fmt.Errorf("Failed to create GOPATH/bin symlink, error: %s", err)
-	}
-	fmt.Println("   [DONE]")
+	// fmt.Println("=> Symlink GOPATH/bin into sandbox ...")
+	// if err := gows.CreateGopathBinSymlink(origGOPATH, workspaceRootPath); err != nil {
+	// 	return fmt.Errorf("Failed to create GOPATH/bin symlink, error: %s", err)
+	// }
+	// fmt.Println("   [DONE]")
 
 	fmt.Println("=> Installing package " + packageToInstall + " ...")
-	cmd := gows.CreateCommand(workspaceRootPath, workspaceRootPath, "go", "get", "-u", "-v", packageToInstall)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Failed to install package, error: %s", err)
+	{
+		cmd := gows.CreateCommand(workspaceRootPath, workspaceRootPath,
+			"go", "get", "-u", "-v", packageToInstall)
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("Failed to install package, error: %s", err)
+		}
 	}
 	fmt.Println("   [DONE] Package successfully installed")
 
+	binTargetDirPath := "/usr/local/bin"
+	fmt.Println("=> Copying generated binaries into " + binTargetDirPath + " ...")
+	{
+		gopathBinPath := filepath.Join(workspaceRootPath, "bin")
+		if err := copyFilesFromDir(gopathBinPath, binTargetDirPath); err != nil {
+			return fmt.Errorf("Failed to move binaries, error: %s", err)
+		}
+	}
+	fmt.Println("   [DONE]")
+
 	fmt.Println("=> Delete isolated workspace ...")
-	if err := os.RemoveAll(workspaceRootPath); err != nil {
-		return fmt.Errorf("Failed to delete temporary isolated workspace, error: %s", err)
+	{
+		if err := os.RemoveAll(workspaceRootPath); err != nil {
+			return fmt.Errorf("Failed to delete temporary isolated workspace, error: %s", err)
+		}
 	}
 	fmt.Println("   [DONE]")
 

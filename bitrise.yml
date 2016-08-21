@@ -11,6 +11,22 @@ workflows:
             set -ex
             go test ./...
 
+  test_in_docker:
+    envs:
+    - TEST_PACKAGE_NAME: github.com/bitrise-tools/gows
+    steps:
+    - script:
+        inputs:
+        - content: |-
+            #!/bin/bash
+            set -ex
+            export GOARCH=amd64
+            export GOOS=linux
+            go build -o "./_bin/goinst-$GOOS-$GOARCH"
+            #
+            docker build -t bitriseio/goinst .
+            docker run --rm -v "$(pwd):/app" bitriseio/goinst bash -c "/app/_bin/goinst-$GOOS-$GOARCH $TEST_PACKAGE_NAME && gows workspaces"
+
   deps-update:
     steps:
     - script:
